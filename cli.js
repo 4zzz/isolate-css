@@ -103,6 +103,12 @@ const argv = yargs(hideBin(process.argv))
     description: 'Directory where processed files should be saved',
     type: 'string'
   })
+  .option('create-out-dir', {
+    alias: 'c',
+    description: 'Create output directory if it doesn\'t exist',
+    type: 'boolean',
+    nargs: 0,
+  })
   .option('prefix-class', {
     alias: 'p',
     description: 'Used prefix class to isolate css',
@@ -120,9 +126,13 @@ const ignore = argv.ignore ? new RegExp(argv.ignore) : undefined;
 const outDir = argv.outDir;
 const up = argv.up || 0;
 const prefixClass = argv.prefixClass || await defaultPrefixClass();
+const createOutDir = argv.createOutDir;
 
 /* pre-checks */
 if (outDir) {
+    if (createOutDir) {
+        fs.mkdirSync(outDir, { recursive: true });
+    }
     const stat = fs.statSync(outDir);
     if (!stat.isDirectory()) {
         die('Specified output directory is not directory');
