@@ -3,6 +3,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import path from 'path';
 import fs from 'fs';
+import { readdir } from 'fs/promises';
 import crypto from 'crypto';
 import { isolateCss } from './isolateCss.js'
 
@@ -29,24 +30,16 @@ function createDirsForFile(filepath) {
     fs.mkdirSync(dir, { recursive: true });
 }
 
-function traverse(dir, callback, cPathArr = []) {
-    cPathArr.push(dir);
-    const cPath = path.join(...cPathArr);
-    fs.readdir( dir, {withFileTypes: true}, async (err, files) => {
-        if (err) {
-            die(err);
-        } else {
-            for (const f of files) {
-                if (f.isFile()) {
-                    await callback(path.join(cPath, f.name));
-                }
-                if (f.isDirectory()) {
-                    traverse(path.join(cPath, f.name), callback, cPathArr);
-                }
-            }
+async function traverse(dir, callback) {
+    const files = await readdir( dir, {withFileTypes: true});
+    for (const f of files) {
+        if (f.isFile()) {
+            await callback(path.join(dir, f.name));
         }
-    });
-    cPathArr.pop();
+        if (f.isDirectory()) {
+            await traverse(path.join(dir, f.name), callback);
+        }
+    }
 }
 
 async function processFile(filepath, prefixClass, outDir, up, extensions, ignore) {
@@ -77,7 +70,7 @@ async function processFile(filepath, prefixClass, outDir, up, extensions, ignore
 }
 
 async function processDir(dir, prefixClass, outDir, up, extensions, ignore) {
-    traverse(dir, async (path) => {
+    await traverse(dir, async (path) => {
         await processFile(path, prefixClass, outDir, up, extensions, ignore);
     });
 }
