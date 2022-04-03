@@ -1,20 +1,26 @@
-import fs from "fs";
+import os from "os";
+import fs from "fs/promises";
 import path from "path";
-import less from "less";
+import sass from "sass";
 
 export async function isolateCss(cssFile, prefixClass, outFile) {
-    const l = `
+    if ( typeof isolateCss.tmpdir == 'undefined' ) {
+        isolateCss.tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'isolate-css-'));
+        process.on('exit', () => {
+            fs.rmdir(isolateCss.tmpdir);
+        })
+    }
+    const tmpDir = isolateCss.tmpdir;
+
+    await fs.copyFile(cssFile, path.join(tmpDir, 'style.css'))
+    const scssContent = `
 .${prefixClass} {
-  @import (less) '${cssFile}';
+  @import 'style';
 }`;
-    const out = await less.render(l);
-    return new Promise ((resolve, reject) => {
-        fs.writeFile(outFile, out.css, {encoding: 'utf-8'}, (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(true);
-            }
-        });
-    });
+
+    await fs.writeFile(path.join(tmpDir, 'isolate.scss'), scssContent, {encoding: 'utf-8'});
+    const result = sass.compile(path.join(tmpDir, 'isolate.scss'))
+    await fs.unlink(path.join(tmpDir, 'style.css'));
+    await fs.unlink(path.join(tmpDir, 'isolate.scss'));
+    await fs.writeFile(outFile, result.css, {encoding: 'utf-8'});
 }
