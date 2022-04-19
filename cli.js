@@ -42,7 +42,7 @@ async function traverse(dir, callback) {
     }
 }
 
-async function processFile(filepath, prefixClass, outDir, up, extensions, ignore) {
+async function processFile(filepath, prefixClass, outDir, options, up, extensions, ignore) {
     const { name, ext } = nameAndExt(filepath);
     if (!extensions.find(e => e === ext)) {
         return false;
@@ -66,12 +66,12 @@ async function processFile(filepath, prefixClass, outDir, up, extensions, ignore
         die(`Output for css file: '${outFile}' already exists`);
     }
     console.log(`Isolate CSS: ${filepath} -> ${outFile}`);
-    return isolateCss(filepath, prefixClass, outFile);
+    return isolateCss(filepath, prefixClass, outFile, options);
 }
 
-async function processDir(dir, prefixClass, outDir, up, extensions, ignore) {
+async function processDir(dir, prefixClass, outDir, options, up, extensions, ignore) {
     await traverse(dir, async (path) => {
-        await processFile(path, prefixClass, outDir, up, extensions, ignore);
+        await processFile(path, prefixClass, outDir, options, up, extensions, ignore);
     });
 }
 
@@ -107,6 +107,12 @@ const argv = yargs(hideBin(process.argv))
     description: 'Used prefix class to isolate css',
     type: 'string'
   })
+  .option('remove-root-from-selectors', {
+    alias: 'r',
+    description: 'Remove body, html, :root selectors from selector list (this should result in aplying rule to element with prefix class)',
+    type: 'boolean',
+    nargs: 0,
+  })
   .help()
   .alias('help', 'h')
   .wrap(yargs.terminalWidth)
@@ -116,10 +122,9 @@ const argv = yargs(hideBin(process.argv))
 
 const extensions = argv.extensions ? argv.extensions.split(',') : ['.css'];
 const ignore = argv.ignore ? new RegExp(argv.ignore) : undefined;
-const outDir = argv.outDir;
 const up = argv.up || 0;
 const prefixClass = argv.prefixClass || await defaultPrefixClass();
-const createOutDir = argv.createOutDir;
+const { outDir, createOutDir, removeRootFromSelectors } = argv;
 
 /* pre-checks */
 if (outDir) {
@@ -163,6 +168,10 @@ if (argv._.length === 0) {
     die('No input files specified');
 }
 
+const options = {
+    removeRootFromSelectors
+}
+
 /* process files */
 for (const f of argv._) {
     fs.stat(f, async (err, stats) => {
@@ -171,10 +180,10 @@ for (const f of argv._) {
         } else {
             if (stats.isFile()) {
                 console.log('processing file ' + f);
-                await processFile(f, prefixClass, outDir, up, extensions, ignore);
+                await processFile(f, prefixClass, outDir, options, up, extensions, ignore);
             } else if (stats.isDirectory()) {
                 console.log('processing directory ' + f);
-                await processDir(f, prefixClass, outDir, up, extensions, ignore);
+                await processDir(f, prefixClass, outDir, options, up, extensions, ignore);
             }
         }
     })
