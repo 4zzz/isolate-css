@@ -13,11 +13,11 @@ function die(msg) {
 
 function defaultPrefixClass() {
     const pkg = JSON.parse(fs.readFileSync('./package.json', {encoding:'utf8'}));
-    const appName = pkg.name;
+    const appName = pkg.name.replace(/[^_a-zA-Z0-9-]/g, '');
     const c = crypto.createHash('sha256');
     c.update(appName);
     const salt = c.digest('base64').slice(0,10);
-    return `${appName}-${salt}`;
+    return `prefix-${appName}-${salt}`;
 }
 
 function nameAndExt(filename) {
