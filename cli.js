@@ -42,7 +42,7 @@ async function traverse(dir, callback) {
     }
 }
 
-async function processFile(filepath, prefixClass, outDir, up, extensions, ignore) {
+async function processFile(filepath, prefixClass, outDir, up, extensions, ignore, force) {
     const { name, ext } = nameAndExt(filepath);
     if (!extensions.find(e => e === ext)) {
         return false;
@@ -62,16 +62,16 @@ async function processFile(filepath, prefixClass, outDir, up, extensions, ignore
         createDirsForFile(outFile);
     }
 
-    if (fs.existsSync(outFile)) {
+    if (!force && fs.existsSync(outFile)) {
         die(`Output for css file: '${outFile}' already exists`);
     }
     console.log(`Isolate CSS: ${filepath} -> ${outFile}`);
     return isolateCss(filepath, prefixClass, outFile);
 }
 
-async function processDir(dir, prefixClass, outDir, up, extensions, ignore) {
+async function processDir(dir, prefixClass, outDir, up, extensions, ignore, force) {
     await traverse(dir, async (path) => {
-        await processFile(path, prefixClass, outDir, up, extensions, ignore);
+        await processFile(path, prefixClass, outDir, up, extensions, ignore, force);
     });
 }
 
@@ -107,6 +107,12 @@ const argv = yargs(hideBin(process.argv))
     description: 'Used prefix class to isolate css',
     type: 'string'
   })
+  .option('force', {
+    alias: 'f',
+    description: 'If output file already exists, rewrite it',
+    type: 'boolean',
+    nargs: 0,
+  })
   .help()
   .alias('help', 'h')
   .wrap(yargs.terminalWidth)
@@ -119,7 +125,7 @@ const ignore = argv.ignore ? new RegExp(argv.ignore) : undefined;
 const outDir = argv.outDir;
 const up = argv.up || 0;
 const prefixClass = argv.prefixClass || await defaultPrefixClass();
-const createOutDir = argv.createOutDir;
+const { createOutDir, force } = argv;
 
 /* pre-checks */
 if (outDir) {
@@ -171,10 +177,10 @@ for (const f of argv._) {
         } else {
             if (stats.isFile()) {
                 console.log('processing file ' + f);
-                await processFile(f, prefixClass, outDir, up, extensions, ignore);
+                await processFile(f, prefixClass, outDir, up, extensions, ignore, force);
             } else if (stats.isDirectory()) {
                 console.log('processing directory ' + f);
-                await processDir(f, prefixClass, outDir, up, extensions, ignore);
+                await processDir(f, prefixClass, outDir, up, extensions, ignore, force);
             }
         }
     })
