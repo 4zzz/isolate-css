@@ -2,7 +2,7 @@
 CLI utility that isolates styles in css files. That means it modifies css rules so they are applied only inside element with specified class. This is achieved by using nesting functionality of less compiler.
 This utility is used in [workbook](https://github.com/FMFI-UK-1-AIN-412/workbook) project to isolate css of *embedded apllications*.
 
-# CLI interface
+# CLI options
 
 ```
 Options:
