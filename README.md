@@ -5,6 +5,7 @@ This utility is used in [workbook](https://github.com/FMFI-UK-1-AIN-412/workbook
 # CLI options
 
 ```
+isolate-css-cli [options] <file|dir> [[file|dir] ... ]
 Options:
       --version         Show version number  [boolean]
   -u, --up              slice a path off the bottom of the paths  [number]
