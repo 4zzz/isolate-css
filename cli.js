@@ -42,7 +42,7 @@ async function traverse(dir, callback) {
     }
 }
 
-async function processFile(filepath, prefixClass, outDir, up, extensions, ignore, force) {
+async function processFile(filepath, prefixClass, outDir, up, extensions, ignore, force, removeSourceMaps) {
     const { name, ext } = nameAndExt(filepath);
     if (!extensions.find(e => e === ext)) {
         return false;
@@ -66,12 +66,12 @@ async function processFile(filepath, prefixClass, outDir, up, extensions, ignore
         die(`Output for css file: '${outFile}' already exists`);
     }
     console.log(`Isolate CSS: ${filepath} -> ${outFile}`);
-    return isolateCss(filepath, prefixClass, outFile);
+    return isolateCss(filepath, prefixClass, removeSourceMaps, outFile);
 }
 
-async function processDir(dir, prefixClass, outDir, up, extensions, ignore, force) {
+async function processDir(dir, prefixClass, outDir, up, extensions, ignore, force, removeSourceMaps) {
     await traverse(dir, async (path) => {
-        await processFile(path, prefixClass, outDir, up, extensions, ignore, force);
+        await processFile(path, prefixClass, outDir, up, extensions, ignore, force, removeSourceMaps);
     });
 }
 
@@ -113,6 +113,13 @@ const argv = yargs(hideBin(process.argv))
     type: 'boolean',
     nargs: 0,
   })
+  .option('remove-source-maps', {
+    alias: 'r',
+    description: 'Remove source map references in output css',
+    type: 'boolean',
+    nargs: 0,
+    default: false,
+  })
   .help()
   .alias('help', 'h')
   .wrap(yargs.terminalWidth)
@@ -125,7 +132,7 @@ const ignore = argv.ignore ? new RegExp(argv.ignore) : undefined;
 const outDir = argv.outDir;
 const up = argv.up || 0;
 const prefixClass = argv.prefixClass || await defaultPrefixClass();
-const { createOutDir, force } = argv;
+const { createOutDir, force, removeSourceMaps } = argv;
 
 /* pre-checks */
 if (outDir) {
@@ -177,10 +184,10 @@ for (const f of argv._) {
         } else {
             if (stats.isFile()) {
                 console.log('processing file ' + f);
-                await processFile(f, prefixClass, outDir, up, extensions, ignore, force);
+                await processFile(f, prefixClass, outDir, up, extensions, ignore, force, removeSourceMaps);
             } else if (stats.isDirectory()) {
                 console.log('processing directory ' + f);
-                await processDir(f, prefixClass, outDir, up, extensions, ignore, force);
+                await processDir(f, prefixClass, outDir, up, extensions, ignore, force, removeSourceMaps);
             }
         }
     })
