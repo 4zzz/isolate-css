@@ -1,6 +1,6 @@
 {
   "name": "@fmfi-uk-1-ain-412/isolate-css",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "isolateCss.js",
   "bin": {
